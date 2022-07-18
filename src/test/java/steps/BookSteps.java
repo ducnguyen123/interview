@@ -1,12 +1,13 @@
 package steps;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.restassured.RestAssured;
+import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import net.thucydides.core.annotations.Step;
-import org.hamcrest.Matchers;
+
+import java.io.File;
+
+import static org.hamcrest.Matchers.*;
 
 public class BookSteps {
 
@@ -16,14 +17,20 @@ public class BookSteps {
     @Step
     public void validateStatusCode(int statusCode) {
         response = RestAssured.when().get(BOOK_URI);
-        response.then().statusCode(statusCode);
+        response.then().assertThat().statusCode(statusCode);
+    }
+
+    public void getBook(int idBook) {
+        response = RestAssured.when().get(BOOK_URI + "/" + idBook);
+        response.then().assertThat().statusLine("HTTP/1.1 200 OK");
+        response.then().assertThat().body(JsonSchemaValidator.matchesJsonSchema(new File("src/test/resources/schema/book.json")));
     }
 
     @Step
     public void searchBookTitleExist(String bookTitle) {
         response = RestAssured.when().get(BOOK_URI);
         response.then().assertThat()
-                .body("title", Matchers.hasItem(bookTitle));
+                .body("title",hasItem(bookTitle));
 //        String numberBook = bookTitle.split(" ")[1];
 //        JsonArray listBook = JsonParser.parseString(response.getBody().asString()).getAsJsonArray();
 //        if(!(listBook.size() < Integer.parseInt(numberBook))) {
@@ -37,9 +44,16 @@ public class BookSteps {
     }
 
     @Step
+    public void searchBookTitleNotExist(String bookTitle) {
+        response = RestAssured.when().get(BOOK_URI);
+        response.then()
+                .body("title",not(hasItem(bookTitle)));
+    }
+
+    @Step
     public void sizeBooks(int size) {
         response = RestAssured.when().get(BOOK_URI);
         response.then().assertThat()
-                .body("size()",Matchers.is(size));
+                .body("size()",is(size));
     }
 }
